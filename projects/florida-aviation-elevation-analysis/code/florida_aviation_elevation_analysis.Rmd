@@ -1,0 +1,100 @@
+---
+title: "Florida Aviation Elevation Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project Overview
+
+This project evaluates the elevation distribution of aviation facilities in Florida and maps both the mean center and the elevation-weighted mean center of airport locations.
+
+## Load Data
+
+```{r}
+aviation <- read.csv("aviationfacilities.csv", header = TRUE)
+str(aviation)
+```
+
+## Filter Florida Facilities
+
+```{r}
+aviation_fl <- subset(aviation, STATE_CODE == "FL")
+```
+
+## Descriptive Statistics
+
+```{r}
+summary(aviation_fl$ELEV)
+```
+
+```{r}
+mean_fl   <- mean(aviation_fl$ELEV, na.rm = TRUE)
+median_fl <- median(aviation_fl$ELEV, na.rm = TRUE)
+sd_fl     <- sd(aviation_fl$ELEV, na.rm = TRUE)
+range_fl  <- range(aviation_fl$ELEV, na.rm = TRUE)
+iqr_fl    <- IQR(aviation_fl$ELEV, na.rm = TRUE)
+
+mean_fl
+median_fl
+sd_fl
+range_fl
+iqr_fl
+```
+
+## Key Statistical Findings
+
+For aviation facilities in Florida, the mean elevation is 69.1 m and the median elevation is 55.0 m. Elevation ranges from 0.0 m to 709.0 m, with an interquartile range of 78.6 m and a standard deviation of 64.2 m.
+
+```{r}
+boxplot(
+  aviation_fl$ELEV,
+  main = "Elevation of Aviation Facilities in Florida",
+  ylab = "Elevation (m)"
+)
+```
+
+## Interpretation
+
+The boxplot shows multiple extreme observations, so the median provides a more robust summary of central tendency than the mean.
+
+## Mean Center and Weighted Mean Center
+
+```{r}
+FL_airports <- aviation_fl[
+  aviation_fl$SITE_TYPE_CODE == "A", ]
+
+plot(
+  FL_airports$LONG_DECIMAL,
+  FL_airports$LAT_DECIMAL,
+  xlab = "Longitude",
+  ylab = "Latitude",
+  main = "Airports in Florida",
+  xlim = c(-88, -80),
+  ylim = c(24, 33)
+)
+
+n <- nrow(FL_airports)[1]
+
+mc_x <- sum(FL_airports$LONG_DECIMAL) / n
+mc_y <- sum(FL_airports$LAT_DECIMAL) / n
+
+points(mc_x, mc_y, pch = 15, cex = 2, col = "blue")
+
+wmc_x <- sum(as.numeric(FL_airports$ELEV * FL_airports$LONG_DECIMAL), na.rm = TRUE) /
+         sum(FL_airports$ELEV, na.rm = TRUE)
+
+wmc_y <- sum(as.numeric(FL_airports$ELEV * FL_airports$LAT_DECIMAL), na.rm = TRUE) /
+         sum(FL_airports$ELEV, na.rm = TRUE)
+
+points(wmc_x, wmc_y, pch = 15, cex = 2, col = "red")
+
+legend(
+  "topright",
+  legend = c("Mean centre", "Weighted mean centre"),
+  pch = c(15, 15),
+  col = c("blue", "red")
+)
+```

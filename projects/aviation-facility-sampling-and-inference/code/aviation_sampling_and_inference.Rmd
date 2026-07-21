@@ -1,0 +1,98 @@
+---
+title: "Aviation Facility Sampling and Inference"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project Overview
+
+This project compares simple random sampling with stratified sampling for aviation facilities in the continental United States and uses the resulting subsets to frame inferential questions about facility-type elevation differences.
+
+## Load Data
+
+```{r import-data, echo = TRUE}
+aviation_facilities <- read.csv("aviationfacilities.csv", sep = ",", header = TRUE)
+```
+
+```{r}
+summary(aviation_facilities)
+```
+
+## Filter to Continental U.S. Records
+
+```{r}
+filtered_states <- subset(
+  aviation_facilities,
+  (STATE_CODE %in% c(
+    "AL","AZ","AR","CA","CO","CT","DE","FL","GA",
+    "ID","IL","IN","IA","KS","KY","LA","ME","MD",
+    "MA","MI","MN","MS","MO","MT","NE","NV","NH",
+    "NJ","NM","NY","NC","ND","OH","OK","OR","PA",
+    "RI","SC","SD","TN","TX","UT","VT","VA","WA","DC",
+    "WV","WI","WY"
+  )) & !is.na(ACREAGE) & !is.na(ELEV)
+)
+
+nrow(filtered_states)
+table(filtered_states$SITE_TYPE_CODE)
+summary(filtered_states$ACREAGE)
+summary(filtered_states$ELEV)
+```
+
+## Simple Random Sampling
+
+```{r}
+random_sample <- filtered_states[sample(1:nrow(filtered_states), size = 100, replace = FALSE), ]
+nrow(random_sample)
+```
+
+## Quartile-Based Stratified Sampling
+
+```{r}
+library(dplyr)
+
+acreage_q1 <- quantile(filtered_states$ACREAGE, 0.25)
+elev_q1 <- quantile(filtered_states$ELEV, 0.25)
+
+subset_q1 <- filtered_states %>%
+  filter(ACREAGE > acreage_q1, ELEV > elev_q1)
+
+set.seed(123)
+
+stratified_sample <- subset_q1 %>%
+  group_by(SITE_TYPE_CODE) %>%
+  filter(n() >= 20) %>%
+  slice_sample(n = 20) %>%
+  ungroup()
+
+nrow(subset_q1)
+nrow(stratified_sample)
+table(stratified_sample$SITE_TYPE_CODE)
+```
+
+## Key Findings
+
+Number of observations in the quartile-filtered subset: 5232.
+
+Number of observations in the stratified sample: 80.
+
+The archived output shows a balanced sample count of 20 observations per facility category in the published result.
+
+## Sampling Interpretation
+
+Simple random sampling selects observations from the entire dataset without enforcing representation across categories. Stratified sampling divides the data into groups first and then samples within each group, which helps preserve representation when facility types are unevenly distributed.
+
+For this dataset, stratified sampling is the better choice when the goal is to compare facility types fairly.
+
+## Hypothesis Framing
+
+The null hypothesis states that there is no difference in mean elevation between airport and heliport facilities.
+
+`H0: mu_airport = mu_heliport`
+
+The alternative hypothesis states that the mean elevation differs between airport and heliport facilities.
+
+`H1: mu_airport != mu_heliport`
